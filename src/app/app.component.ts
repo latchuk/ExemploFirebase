@@ -1,10 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
-
-interface Produto {
-  id: string;
-  descricao: string;
-}
+import { Produto } from './models/produto.model';
 
 @Component({
   selector: 'app-root',
@@ -12,28 +8,50 @@ interface Produto {
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
-  title = 'ExemploFirebase';
+
+  produtos: Produto[] = [];
 
   constructor(private firestore: AngularFirestore) { }
 
   ngOnInit(): void {
+    this.atualizarLista();
+  }
+
+  async adicionar() {
+
+    const novoProduto = {
+      descricao: 'Novo produto - ' + new Date()
+    } as Produto;
+
+    await this.firestore.collection<Produto>('produtos').add(novoProduto);
+
+    this.atualizarLista();
+  }
+
+  atualizarLista() {
 
     this.firestore.collection<Produto>('produtos').get()
       .toPromise()
       .then(documentData => {
 
-        const produtos = documentData.docs.map(y => {
+        // for (const doc of documentData.docs) {
+        //   const dados = doc.data();
 
+        //   const produto = new Produto();
+        //   produto.id = doc.id;
+        //   produto.descricao = dados.descricao;
+
+        //   this.produtos.push(produto);
+
+        // }
+
+        this.produtos = documentData.docs.map(doc => {
           return {
-            id: y.id,
-            ...y.data(),
+            id: doc.id,
+            ...doc.data()
           } as Produto;
-
         });
 
-        console.log('DEU CERTO!');
-        console.log(documentData);
-        console.log(produtos);
       })
       .catch(erro => {
         console.log('ERRO: ');
@@ -43,3 +61,4 @@ export class AppComponent implements OnInit {
   }
 
 }
+
