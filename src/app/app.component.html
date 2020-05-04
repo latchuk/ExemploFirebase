@@ -1,5 +1,11 @@
-<button (click)="adicionar()">adicionar produto</button>
-<div *ngFor="let produto of produtos">
+<form [formGroup]="formulario" (ngSubmit)="adicionar()">
+  <input formControlName="descricao" name="Descricao">
+  <button type="submit">adicionar produto</button>
+</form>
+
+<div *ngFor="let produto of produtos | async">
   <h3>{{produto.id}}</h3>
   <p>{{produto.descricao}}</p>
+  <button (click)="editar(produto)">Editar</button>
+  <button (click)="deletar(produto)">Deletar</button>
 </div>

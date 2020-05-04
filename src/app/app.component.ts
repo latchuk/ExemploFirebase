@@ -1,6 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
 import { Produto } from './models/produto.model';
+import { FormGroup, FormControl } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { ProdutosService } from './services/produtos.service';
+import { AngularFirestore } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-root',
@@ -9,56 +12,74 @@ import { Produto } from './models/produto.model';
 })
 export class AppComponent implements OnInit {
 
-  produtos: Produto[] = [];
+  // produtos: Produto[] = [];
+  produtos: Observable<Produto[]>;
 
-  constructor(private firestore: AngularFirestore) { }
+  formulario = new FormGroup({
+    descricao: new FormControl(null),
+  });
+
+  constructor(
+    public produtosService: ProdutosService,
+    private firestore: AngularFirestore) { }
 
   ngOnInit(): void {
-    this.atualizarLista();
+
+    this.produtos = this.firestore.collection<Produto>('produtos',
+      ref => ref.orderBy('descricao')
+    ).valueChanges({ idField: 'id' });
+
+    // this.atualizarLista();
   }
 
   async adicionar() {
 
-    const novoProduto = {
-      descricao: 'Novo produto - ' + new Date()
-    } as Produto;
+    const novoProduto = this.formulario.value as Produto;
 
-    await this.firestore.collection<Produto>('produtos').add(novoProduto);
+    await this.produtosService.add(novoProduto);
 
-    this.atualizarLista();
+    // this.atualizarLista();
   }
 
-  atualizarLista() {
+  async deletar(produto: Produto) {
 
-    this.firestore.collection<Produto>('produtos').get()
-      .toPromise()
-      .then(documentData => {
+    // await this.firestore.collection('produtos').doc(produto.id).delete();
 
-        // for (const doc of documentData.docs) {
-        //   const dados = doc.data();
-
-        //   const produto = new Produto();
-        //   produto.id = doc.id;
-        //   produto.descricao = dados.descricao;
-
-        //   this.produtos.push(produto);
-
-        // }
-
-        this.produtos = documentData.docs.map(doc => {
-          return {
-            id: doc.id,
-            ...doc.data()
-          } as Produto;
-        });
-
-      })
-      .catch(erro => {
-        console.log('ERRO: ');
-        console.log(erro);
-      });
-
+    // this.atualizarLista();
   }
+
+  async editar(produto: Produto) {
+
+    produto.descricao = 'editado' + new Date();
+
+    // await this.firestore.collection('produtos').doc(produto.id).update(produto);
+
+    // this.atualizarLista();
+  }
+
+  // atualizarLista() {
+
+  //   this.firestore.collection<Produto>('produtos',
+  //     // ref => ref.where('descricao', '==', 'Caneta')
+  //     ref => ref.orderBy('descricao')
+  //   ).get()
+  //     .toPromise()
+  //     .then(documentData => {
+
+  //       this.produtos = documentData.docs.map(doc => {
+  //         return {
+  //           id: doc.id,
+  //           ...doc.data()
+  //         } as Produto;
+  //       });
+
+  //     })
+  //     .catch(erro => {
+  //       console.log('ERRO: ');
+  //       console.log(erro);
+  //     });
+
+  // }
 
 }
 
