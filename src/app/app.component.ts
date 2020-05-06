@@ -2,8 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { Produto } from './models/produto.model';
 import { FormGroup, FormControl } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { ProdutosService } from './services/produtos.service';
-import { AngularFirestore } from '@angular/fire/firestore';
+import { AngularFireStorage } from '@angular/fire/storage';
 
 @Component({
   selector: 'app-root',
@@ -12,8 +13,10 @@ import { AngularFirestore } from '@angular/fire/firestore';
 })
 export class AppComponent implements OnInit {
 
-  // produtos: Produto[] = [];
   produtos: Observable<Produto[]>;
+
+  porcentagemEnvio: Observable<number>;
+  url: Observable<string>;
 
   formulario = new FormGroup({
     descricao: new FormControl(null),
@@ -21,65 +24,45 @@ export class AppComponent implements OnInit {
 
   constructor(
     public produtosService: ProdutosService,
-    private firestore: AngularFirestore) { }
+    private storage: AngularFireStorage
+  ) { }
 
-  ngOnInit(): void {
+  async ngOnInit() {
+    this.produtos = this.produtosService.getObservable();
 
-    this.produtos = this.firestore.collection<Produto>('produtos',
-      ref => ref.orderBy('descricao')
-    ).valueChanges({ idField: 'id' });
+    const p = await this.produtosService.getAll();
+    console.log(p);
 
-    // this.atualizarLista();
   }
 
   async adicionar() {
-
     const novoProduto = this.formulario.value as Produto;
-
     await this.produtosService.add(novoProduto);
-
-    // this.atualizarLista();
   }
 
   async deletar(produto: Produto) {
-
-    // await this.firestore.collection('produtos').doc(produto.id).delete();
-
-    // this.atualizarLista();
+    await this.produtosService.delete(produto);
   }
 
   async editar(produto: Produto) {
-
-    produto.descricao = 'editado' + new Date();
-
-    // await this.firestore.collection('produtos').doc(produto.id).update(produto);
-
-    // this.atualizarLista();
+    await this.produtosService.update(produto);
   }
 
-  // atualizarLista() {
+  uploadFile(event) {
+    const file = event.target.files[0];
 
-  //   this.firestore.collection<Produto>('produtos',
-  //     // ref => ref.where('descricao', '==', 'Caneta')
-  //     ref => ref.orderBy('descricao')
-  //   ).get()
-  //     .toPromise()
-  //     .then(documentData => {
+    const nomeArquivo = 'arquivo teste';
 
-  //       this.produtos = documentData.docs.map(doc => {
-  //         return {
-  //           id: doc.id,
-  //           ...doc.data()
-  //         } as Produto;
-  //       });
+    const fileRef = this.storage.ref(nomeArquivo);
+    const task = this.storage.upload(nomeArquivo, file);
 
-  //     })
-  //     .catch(erro => {
-  //       console.log('ERRO: ');
-  //       console.log(erro);
-  //     });
+    this.porcentagemEnvio = task.percentageChanges();
 
-  // }
+    task.snapshotChanges().pipe(
+      finalize(() => this.url = fileRef.getDownloadURL())
+    ).subscribe();
+
+  }
 
 }
 
